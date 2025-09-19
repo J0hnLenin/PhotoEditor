@@ -16,6 +16,7 @@ import (
 	"github.com/J0hnLenin/ComputerVision/redactor"
 	"github.com/J0hnLenin/ComputerVision/statistics"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 )
 
 func imageDeserializer(img image.Image) imatix.Image {
@@ -103,30 +104,27 @@ func imageStatisticsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func parseQuery(queryParameters url.Values) imatix.Parameters {
-	redBrightness, _ := strconv.Atoi(queryParameters.Get("redBrightness"))
+	redBrightness, _ := strconv.Atoi(queryParameters.Get("RedBrightness"))
 	if redBrightness == 0 {
 		redBrightness = 100
 	}
-	greenBrightness, _ := strconv.Atoi(queryParameters.Get("greenBrightness"))
+	greenBrightness, _ := strconv.Atoi(queryParameters.Get("GreenBrightness"))
 	if greenBrightness == 0 {
 		greenBrightness = 100
 	}
-	blueBrightness, _ := strconv.Atoi(queryParameters.Get("blueBrightness"))
+	blueBrightness, _ := strconv.Atoi(queryParameters.Get("BlueBrightness"))
 	if blueBrightness == 0 {
 		blueBrightness = 100
 	}
-	contrast, _ := strconv.Atoi(queryParameters.Get("contrast"))
+	contrast, _ := strconv.Atoi(queryParameters.Get("Contrast"))
 	if contrast == 0 {
 		contrast = 100
 	}
-	negative, _ := strconv.ParseBool(queryParameters.Get("negative"))
-	order := queryParameters.Get("order")
-	vertivalMirror, _ := strconv.ParseBool(queryParameters.Get("vertivalMirror"))
-	horisontalMirror, _ := strconv.ParseBool(queryParameters.Get("horisontalMirror"))
-	magic, _ := strconv.Atoi(queryParameters.Get("magic"))
-	if contrast == 0 {
-		contrast = 100
-	}
+	negative, _ := strconv.ParseBool(queryParameters.Get("Negative"))
+	order := queryParameters.Get("Order")
+	verticalMirror, _ := strconv.ParseBool(queryParameters.Get("VerticalMirror"))
+	horizontalMirror, _ := strconv.ParseBool(queryParameters.Get("HorizontalMirror"))
+	magic, _ := strconv.Atoi(queryParameters.Get("Magic"))
 
 	return imatix.Parameters{
 		RedBrightness:    float64(redBrightness) / 100,
@@ -135,8 +133,8 @@ func parseQuery(queryParameters url.Values) imatix.Parameters {
 		Contrast:         float64(contrast) / 100,
 		Negative:         negative,
 		Order:            order,
-		VertivalMirror:   vertivalMirror,
-		HorisontalMirror: horisontalMirror,
+		VerticalMirror:   verticalMirror,
+		HorizontalMirror: horizontalMirror,
 		Magic:            magic,
 	}
 
@@ -166,10 +164,21 @@ func imageRedactorHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5173", "http://127.0.0.1:5173"}, // URL вашего Vue приложения
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: true,
+		Debug:            true, // Включите для отладки, в продакшене установите false
+	})
+
 	r := mux.NewRouter()
 	r.HandleFunc("/api/v1/image/apply/{func}", imageApplyHandler).Methods("POST")
 	r.HandleFunc("/api/v1/image/statistics", imageStatisticsHandler).Methods("POST")
 	r.HandleFunc("/api/v1/image/redactor", imageRedactorHandler).Methods("POST")
+
+	handler := c.Handler(r)
+
 	fmt.Println("Server starting on :8000")
-	log.Fatal(http.ListenAndServe(":8000", r))
+	log.Fatal(http.ListenAndServe(":8000", handler))
 }

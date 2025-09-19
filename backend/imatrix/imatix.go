@@ -13,7 +13,7 @@ type Parameters struct {
 	Contrast         float64
 	Negative         bool
 	Order            string // RGB RBG GRB
-	VertivalMirror   bool
-	HorisontalMirror bool
+	VerticalMirror   bool
+	HorizontalMirror bool
 	Magic            int
 }
