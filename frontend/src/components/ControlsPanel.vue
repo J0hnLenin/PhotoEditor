@@ -46,7 +46,7 @@
     </div>
 
     <div class="control-group">
-      <label>Контраст: {{ params.Contrast }}%</label>
+      <label>Контраст: {{ params.Contrast }} %</label>
       <input 
         type="range" 
         min="1" 
@@ -57,7 +57,7 @@
     </div>
 
     <div class="control-group">
-      <label>Magic: {{ params.Magic }}%</label>
+      <label>Magic: {{ params.Magic }} %</label>
       <input 
         type="range" 
         min="0" 

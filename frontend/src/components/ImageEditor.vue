@@ -56,7 +56,7 @@ import { defineComponent, ref, reactive, watch, onUnmounted } from 'vue';
 import MainImage from '@/components/MainImage.vue';
 import ChannelImages from '@/components/ChannelImages.vue';
 import ControlsPanel from '@/components/ControlsPanel.vue';
-import type { ImageEditorParams, ChannelImage } from '@/types/image';
+import type { ImageEditorParams, ChannelImage, BrightnessHistogram } from '@/types/image';
 
 // Значения по умолчанию
 const DEFAULT_PARAMS: ImageEditorParams = {
@@ -98,6 +98,95 @@ export default defineComponent({
       if (channelsTimer) clearTimeout(channelsTimer);
     });
 
+    // Функция для загрузки гистограммы
+    const loadHistogram = async (imageBlob: Blob | File): Promise<BrightnessHistogram | null> => {
+    try {
+      const file = imageBlob instanceof Blob ? 
+        new File([imageBlob], 'image.png', { type: 'image/png' }) : 
+        imageBlob;
+
+      const response = await fetch('http://localhost:8000/api/v1/image/statistics', {
+        method: 'POST',
+        body: file
+      });
+
+      if (response.ok) {
+        const histogramData: BrightnessHistogram = await response.json();
+        return histogramData;
+      }
+    } catch (error) {
+      console.error('Ошибка загрузки гистограммы:', error);
+    }
+    return null;
+};
+
+    const loadChannelImages = async (imageBlob: Blob | null = null) => {
+  const imageToProcess = imageBlob || processedImageBlob.value || originalFile.value;
+  if (!imageToProcess) return;
+
+  if (channelsTimer) clearTimeout(channelsTimer);
+  
+  channelsTimer = window.setTimeout(async () => {
+    channelsLoading.value = true;
+    try {
+      const channels: ChannelImage['type'][] = ['red', 'green', 'blue', 'gray'];
+      const images: ChannelImage[] = [];
+
+      // Сначала загружаем гистограмму
+      let histogramData: BrightnessHistogram | null = null;
+      try {
+        histogramData = await loadHistogram(imageToProcess);
+      } catch (error) {
+        console.warn('Не удалось загрузить гистограмму:', error);
+        histogramData = null;
+      }
+
+      // Затем загружаем каналы
+      for (const channel of channels) {
+        try {
+          const file = imageToProcess instanceof Blob ? 
+            new File([imageToProcess], 'image.png', { type: 'image/png' }) : 
+            imageToProcess;
+
+          const channelResponse = await fetch(`http://localhost:8000/api/v1/image/apply/${channel}`, {
+            method: 'POST',
+            body: file,
+          });
+
+          if (channelResponse.ok) {
+            const blob = await channelResponse.blob();
+            const url = URL.createObjectURL(blob);
+            
+            // Добавляем гистограмму для соответствующего канала
+            let histogram: number[] | undefined = undefined;
+            
+            if (histogramData && histogramData.Brightness) {
+              const channelKey = channel.charAt(0).toUpperCase() + channel.slice(1) as keyof typeof histogramData.Brightness;
+              histogram = Array.from(histogramData.Brightness[channelKey]);
+            }
+            
+            images.push({ 
+              type: channel, 
+              url, 
+              histogram 
+            });
+          }
+        
+        } catch (error) {
+          console.error(`Ошибка загрузки канала ${channel}:`, error);
+        }
+      }
+
+      channelImages.value = images;
+    } catch (error) {
+      console.error('Общая ошибка загрузки каналов:', error);
+    } finally {
+      channelsLoading.value = false;
+    }
+  }, 1000);
+};
+
+    // Остальные функции без изменений...
     const triggerFileInput = () => {
       fileInput.value?.click();
     };
@@ -117,47 +206,6 @@ export default defineComponent({
         };
         reader.readAsDataURL(file);
       }
-    };
-
-    const loadChannelImages = async (imageBlob: Blob | null = null) => {
-      const imageToProcess = imageBlob || processedImageBlob.value || originalFile.value;
-      if (!imageToProcess) return;
-
-      if (channelsTimer) clearTimeout(channelsTimer);
-      
-      channelsTimer = window.setTimeout(async () => {
-        channelsLoading.value = true;
-        try {
-          const channels: ChannelImage['type'][] = ['red', 'green', 'blue', 'gray'];
-          const images: ChannelImage[] = [];
-
-          for (const channel of channels) {
-            var file;
-            if (imageToProcess instanceof Blob) {
-              file = new File([imageToProcess], 'image.png', { type: 'image/png' });
-            } else {
-              file = imageToProcess;
-            }
-
-            const channelResponse = await fetch(`http://localhost:8000/api/v1/image/apply/${channel}`, {
-              method: 'POST',
-              body: file
-            });
-
-            if (channelResponse.ok) {
-              const blob = await channelResponse.blob();
-              const url = URL.createObjectURL(blob);
-              images.push({ type: channel, url });
-            }
-          }
-
-          channelImages.value = images;
-        } catch (error) {
-          console.error('Ошибка загрузки каналов:', error);
-        } finally {
-          channelsLoading.value = false;
-        }
-      }, 1000);
     };
 
     const updateParams = (newParams: Partial<ImageEditorParams>) => {
@@ -210,7 +258,6 @@ export default defineComponent({
       loadChannelImages();
     };
 
-    // Скачивание обработанного изображения
     const downloadImage = () => {
       if (!processedImageBlob.value) return;
 
