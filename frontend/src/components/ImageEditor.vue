@@ -28,6 +28,7 @@
         <MainImage 
           :image="processedImage || originalImage"
           :loading="processing"
+          @pixel-data="handlePixelData"
         />
         
         <ChannelImages 
@@ -43,6 +44,16 @@
         @reset="resetSettings"
         :applying="processing"
       />
+
+      <PixelInfo 
+        :visible="!!pixelData"
+        :pixel-x="pixelData?.x || 0"
+        :pixel-y="pixelData?.y || 0"
+        :rgb="pixelData?.rgb || { r: 0, g: 0, b: 0 }"
+        :intensity="pixelData?.intensity || 0"
+        :window-stats="pixelData?.windowStats || { mean: 0, stdDev: 0 }"
+        :window-data="pixelData?.windowData || []"
+      />
     </div>
 
     <div v-else class="placeholder">
@@ -56,7 +67,17 @@ import { defineComponent, ref, reactive, watch, onUnmounted } from 'vue';
 import MainImage from '@/components/MainImage.vue';
 import ChannelImages from '@/components/ChannelImages.vue';
 import ControlsPanel from '@/components/ControlsPanel.vue';
+import PixelInfo from '@/components/PixelInfo.vue';
 import type { ImageEditorParams, ChannelImage, BrightnessHistogram } from '@/types/image';
+
+interface PixelData {
+  x: number;
+  y: number;
+  rgb: { r: number; g: number; b: number };
+  intensity: number;
+  windowStats: { mean: number; stdDev: number };
+  windowData: Array<{ r: number; g: number; b: number }>;
+}
 
 // Значения по умолчанию
 const DEFAULT_PARAMS: ImageEditorParams = {
@@ -76,7 +97,8 @@ export default defineComponent({
   components: {
     MainImage,
     ChannelImages,
-    ControlsPanel
+    ControlsPanel,
+    PixelInfo,
   },
   setup() {
     const fileInput = ref<HTMLInputElement | null>(null);
@@ -92,6 +114,12 @@ export default defineComponent({
     let channelsTimer: number | null = null;
 
     const editorParams = reactive<ImageEditorParams>({ ...DEFAULT_PARAMS });
+
+    const pixelData = ref<PixelData | null>(null);
+
+    const handlePixelData = (data: PixelData | null) => {
+      pixelData.value = data;
+    };
 
     onUnmounted(() => {
       if (applyTimer) clearTimeout(applyTimer);
@@ -287,7 +315,9 @@ export default defineComponent({
       handleFileUpload,
       updateParams,
       resetSettings,
-      downloadImage
+      downloadImage,
+      pixelData,
+      handlePixelData
     };
   }
 });
