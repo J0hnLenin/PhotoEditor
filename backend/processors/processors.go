@@ -59,7 +59,7 @@ func GrayScale(img imatix.Image) {
 func ChangeBrightness(img imatix.Image, color int, brightness float64) {
 	for i := 0; i < img.Height; i++ {
 		for j := 0; j < img.Width; j++ {
-			value := 2.0 - float64(img.Matrix[i][j][color])/255
+			value := float64(img.Matrix[i][j][color]) / 255
 			value = float64(math.Pow(value, brightness) * 255)
 			img.Matrix[i][j][color] = transform(value)
 		}
@@ -127,10 +127,9 @@ func Magic(img imatix.Image, t int) {
 	for i := 0; i < img.Height; i++ {
 		for j := 0; j < img.Width; j++ {
 			for k := 0; k < 3; k++ {
-				if int(img.Matrix[i][j][k])+t > 255 || int(img.Matrix[i][j][k])-t < 0 {
+				if int(img.Matrix[i][j][k])+t <= 255 && int(img.Matrix[i][j][k])-t >= 0 {
 					img.Matrix[i][j][k] = 255 - img.Matrix[i][j][k]
 				}
-				img.Matrix[i][j][k] = 255 - img.Matrix[i][j][k]
 			}
 		}
 	}

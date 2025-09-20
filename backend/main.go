@@ -127,9 +127,9 @@ func parseQuery(queryParameters url.Values) imatix.Parameters {
 	magic, _ := strconv.Atoi(queryParameters.Get("Magic"))
 
 	return imatix.Parameters{
-		RedBrightness:    float64(redBrightness) / 100,
-		GreenBrightness:  float64(greenBrightness) / 100,
-		BlueBrightness:   float64(blueBrightness) / 100,
+		RedBrightness:    float64(200-redBrightness) / 100,
+		GreenBrightness:  float64(200-greenBrightness) / 100,
+		BlueBrightness:   float64(200-blueBrightness) / 100,
 		Contrast:         float64(contrast) / 100,
 		Negative:         negative,
 		Order:            order,
