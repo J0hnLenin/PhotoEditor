@@ -421,9 +421,6 @@ func ColorTransform(img imatix.Image, lambda, threshold, constant float64, low, 
 	if useConstant {
 		// 1.4.1 Приведение к константному значению
 		result = intensitySliceConstant(result, low, high, uint8(constant))
-	} else {
-		// 1.4.2 Сохранение в исходном виде
-		result = intensitySlicePreserve(result, low, high)
 	}
 
 	return result
@@ -488,36 +485,20 @@ func intensitySliceConstant(img imatix.Image, lowThreshold, highThreshold, const
 
 	for y := 0; y < result.Height; y++ {
 		for x := 0; x < result.Width; x++ {
-			gray := uint8(0.299*float32(result.Matrix[y][x][0]) +
-				0.587*float32(result.Matrix[y][x][1]) +
-				0.114*float32(result.Matrix[y][x][2]))
 
-			if gray >= lowThreshold && gray <= highThreshold {
+			inRange := true
+			for channel := 0; channel < 3; channel++ {
+				if result.Matrix[y][x][channel] < lowThreshold || result.Matrix[y][x][channel] > highThreshold {
+					inRange = false
+					break
+				}
+			}
+
+			if inRange {
 
 				result.Matrix[y][x] = [3]uint8{constantValue, constantValue, constantValue}
 			}
 
-		}
-	}
-	return result
-}
-
-func intensitySlicePreserve(img imatix.Image, lowThreshold, highThreshold uint8) imatix.Image {
-	result := copyImage(img)
-
-	for y := 0; y < result.Height; y++ {
-		for x := 0; x < result.Width; x++ {
-			gray := uint8(0.299*float32(result.Matrix[y][x][0]) +
-				0.587*float32(result.Matrix[y][x][1]) +
-				0.114*float32(result.Matrix[y][x][2]))
-
-			if gray >= lowThreshold && gray <= highThreshold {
-
-				continue
-			} else {
-
-				result.Matrix[y][x] = [3]uint8{0, 0, 0}
-			}
 		}
 	}
 	return result
