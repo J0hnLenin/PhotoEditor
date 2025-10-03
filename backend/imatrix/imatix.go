@@ -6,6 +6,14 @@ type Image struct {
 	Width  int
 }
 
+type FilterType string
+
+const (
+	FilterReactangle FilterType = "rectangle"
+	FilterMedian     FilterType = "median"
+	FilterGaussian   FilterType = "gaussian"
+)
+
 type ProccessorCore func(float64, float64) float64
 
 func (img Image) Apply(core ProccessorCore, parameter float64) {

@@ -189,3 +189,96 @@ func ApplyCore(img imatix.Image, parameterName string, parameterValue float64) {
 func logarithmicBrightnessCore(value float64, c float64) float64 {
 	return c * math.Log(1.0+value)
 }
+
+func createGaussianKernel(size int, sigma float64) []float64 {
+	kernel := make([]float64, size)
+	radius := size / 2
+	var sum float64
+
+	for i := -radius; i <= radius; i++ {
+		x := float64(i)
+		value := math.Exp(-(x*x)/(2*sigma*sigma)) / (sigma * math.Sqrt(2*math.Pi))
+		kernel[i+radius] = value
+		sum += value
+	}
+	for i := 0; i < size; i++ {
+		kernel[i] /= sum
+	}
+
+	return kernel
+}
+
+// оптимизация для одномерных
+func applyConvolution(src, dst imatix.Image, kernel []float64, horizontal bool) {
+	radius := len(kernel) / 2
+
+	for y := 0; y < src.Height; y++ {
+		for x := 0; x < src.Width; x++ {
+			var sumR, sumG, sumB float64
+			var weightSum float64
+
+			for k := -radius; k <= radius; k++ {
+				var px, py int
+				//Здесь направление одномерной свёртки
+				if horizontal {
+
+					px = x + k
+					py = y
+				} else {
+
+					px = x
+					py = y + k
+				}
+
+				if px < 0 || px >= src.Width || py < 0 || py >= src.Height {
+					continue
+				}
+
+				weight := kernel[k+radius]
+				pixel := src.Matrix[py][px]
+
+				sumR += float64(pixel[0]) * weight
+				sumG += float64(pixel[1]) * weight
+				sumB += float64(pixel[2]) * weight
+				weightSum += weight
+			}
+
+			if weightSum > 0 {
+				dst.Matrix[y][x] = [3]uint8{
+					transform(sumR / weightSum),
+					transform(sumG / weightSum),
+					transform(sumB / weightSum),
+				}
+			}
+		}
+	}
+}
+
+func GaussianFilter(img imatix.Image, sigma float64) {
+	if sigma <= 0 {
+		return
+	}
+
+	kernel := createGaussianKernel(int(6*sigma+1), sigma) //одномерное ядро обязательно для Convolution
+	temp := copyImage(img)
+
+	// Горизонтально
+	applyConvolution(img, temp, kernel, true)
+	// Вертикально
+	applyConvolution(temp, img, kernel, false)
+}
+
+func copyImage(img imatix.Image) imatix.Image {
+	copyImg := imatix.Image{
+		Matrix: make([][][3]uint8, img.Height),
+		Height: img.Height,
+		Width:  img.Width,
+	}
+
+	for i := 0; i < img.Height; i++ {
+		copyImg.Matrix[i] = make([][3]uint8, img.Width)
+		copy(copyImg.Matrix[i], img.Matrix[i])
+	}
+
+	return copyImg
+}
