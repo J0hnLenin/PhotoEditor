@@ -126,7 +126,9 @@ func parseQuery(queryParameters url.Values) imatix.Parameters {
 	verticalMirror, _ := strconv.ParseBool(queryParameters.Get("VerticalMirror"))
 	horizontalMirror, _ := strconv.ParseBool(queryParameters.Get("HorizontalMirror"))
 	magic, _ := strconv.Atoi(queryParameters.Get("Magic"))
-
+	filter := queryParameters.Get("Filter")
+	filterSize, _ := strconv.Atoi(queryParameters.Get("FilterSize"))
+	sigma, _ := strconv.Atoi(queryParameters.Get("Sigma"))
 	return imatix.Parameters{
 		RedBrightness:         float64(200-redBrightness) / 100,
 		GreenBrightness:       float64(200-greenBrightness) / 100,
@@ -138,6 +140,9 @@ func parseQuery(queryParameters url.Values) imatix.Parameters {
 		VerticalMirror:        verticalMirror,
 		HorizontalMirror:      horizontalMirror,
 		Magic:                 magic,
+		Filter:                filter,
+		FilterSize:            filterSize,
+		Sigma:                 float64(sigma),
 	}
 
 }

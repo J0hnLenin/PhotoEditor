@@ -254,18 +254,19 @@ func applyConvolution(src, dst imatix.Image, kernel []float64, horizontal bool) 
 	}
 }
 
-func GaussianFilter(img imatix.Image, sigma float64) {
+func GaussianFilter(img imatix.Image, sigma float64) imatix.Image {
 	if sigma <= 0 {
-		return
+		return img
 	}
 
-	kernel := createGaussianKernel(int(6*sigma+1), sigma) //одномерное ядро обязательно для Convolution
+	kernel := createGaussianKernel(3, sigma) //одномерное ядро обязательно для Convolution
 	temp := copyImage(img)
 
 	// Горизонтально
 	applyConvolution(img, temp, kernel, true)
 	// Вертикально
 	applyConvolution(temp, img, kernel, false)
+	return img
 }
 
 func copyImage(img imatix.Image) imatix.Image {
@@ -281,4 +282,48 @@ func copyImage(img imatix.Image) imatix.Image {
 	}
 
 	return copyImg
+}
+
+func SigmaFilter(img imatix.Image, sigma float64, k float64) imatix.Image {
+	temp := copyImage(img)
+	radius := 2
+
+	for y := 0; y < img.Height; y++ {
+		for x := 0; x < img.Width; x++ {
+			center := temp.Matrix[y][x]
+
+			var sumR, sumG, sumB float64
+			var count int
+
+			for dy := -radius; dy <= radius; dy++ {
+				for dx := -radius; dx <= radius; dx++ {
+					nx, ny := x+dx, y+dy
+					if nx < 0 || nx >= img.Width || ny < 0 || ny >= img.Height {
+						continue
+					}
+
+					neighbor := temp.Matrix[ny][nx]
+
+					if math.Abs(float64(neighbor[0])-float64(center[0])) <= k*sigma &&
+						math.Abs(float64(neighbor[1])-float64(center[1])) <= k*sigma &&
+						math.Abs(float64(neighbor[2])-float64(center[2])) <= k*sigma {
+
+						sumR += float64(neighbor[0])
+						sumG += float64(neighbor[1])
+						sumB += float64(neighbor[2])
+						count++
+					}
+				}
+			}
+
+			if count > 0 {
+				img.Matrix[y][x] = [3]uint8{
+					transform(sumR / float64(count)),
+					transform(sumG / float64(count)),
+					transform(sumB / float64(count)),
+				}
+			}
+		}
+	}
+	return img
 }

@@ -33,11 +33,17 @@ func Redact(imputImage imatix.Image, parameters imatix.Parameters) imatix.Image 
 	if parameters.Magic != 0.0 {
 		processors.Magic(imputImage, parameters.Magic)
 	}
+	if parameters.Filter == "gaussian" {
+		imputImage = processors.GaussianFilter(imputImage, 1.0)
+	}
+	if parameters.Filter == "sigma" {
+		imputImage = processors.SigmaFilter(imputImage, parameters.Sigma, 2)
+	}
 	// ApplyCore - новая функция чтобы избежать дублирования.
 	// Можно код отрефакторить, прическать.
 	// Новые обработчики добавлять в этом формате.
-	if parameters.LogarithmicBrightness != 1.0 {
-		processors.ApplyCore(imputImage, "LogarithmicBrightness", parameters.LogarithmicBrightness)
-	}
+	//if parameters.LogarithmicBrightness != 1.0 {
+	//	processors.ApplyCore(imputImage, "LogarithmicBrightness", parameters.LogarithmicBrightness)
+	//}
 	return imputImage
 }

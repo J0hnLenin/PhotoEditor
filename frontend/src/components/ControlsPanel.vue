@@ -114,7 +114,35 @@
         <option value="GBR">BRG</option>
       </select>
     </div>
-  </div>
+    <div class="control-group">
+      <label>Фильтр:</label>
+      <select 
+        v-model="localParams.Filter"
+        @change="updateParam('Filter', $event)"
+      >
+        <option value="none">Без фильтра</option>
+        <option value="gaussian">Гауссово размытие</option>
+        <option value="median">Медианный фильтр</option>
+        <option value="sigma">Сигма фильтр</option>
+      </select>
+    </div>
+
+    <div v-if="localParams.Filter !== 'none'" class="filter-params">
+      <div class="control-group">
+        <label>Размер ядра: {{ localParams.FilterSize }}×{{ localParams.FilterSize }}</label>
+        <select 
+          v-model="localParams.FilterSize"
+          @change="updateParam('FilterSize', $event)"
+        >
+          <option value="3">3×3</option>
+          <option value="5">5×5</option>
+          <option value="7">7×7</option>
+          <option value="9">9×9</option>
+          <option value="11">11×11</option>
+        </select>
+      </div>
+    </div>
+    </div>
 </template>
 
 <script lang="ts">
@@ -131,7 +159,10 @@ const DEFAULT_PARAMS: ImageEditorParams = {
   Order: 'RGB',
   VerticalMirror: false,
   HorizontalMirror: false,
-  Magic: 0
+  Magic: 0,
+  Filter: 'none',
+  FilterSize: 3,
+  Sigma: 0
 };
 
 export default defineComponent({

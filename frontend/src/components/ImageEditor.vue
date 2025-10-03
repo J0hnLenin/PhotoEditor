@@ -80,7 +80,7 @@ interface PixelData {
 }
 
 // Значения по умолчанию
-const DEFAULT_PARAMS: ImageEditorParams = {
+export const DEFAULT_PARAMS: ImageEditorParams = {
   RedBrightness: 100,
   GreenBrightness: 100,
   BlueBrightness: 100,
@@ -89,7 +89,10 @@ const DEFAULT_PARAMS: ImageEditorParams = {
   Order: 'RGB',
   VerticalMirror: false,
   HorizontalMirror: false,
-  Magic: 0
+  Magic: 0,
+  Filter:  'none',
+  FilterSize: 3,
+  Sigma: 0,
 };
 
 export default defineComponent({

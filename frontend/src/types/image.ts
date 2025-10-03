@@ -8,6 +8,9 @@ export interface ImageEditorParams {
   VerticalMirror: boolean;
   HorizontalMirror: boolean;
   Magic: number;
+  Filter: string;
+  FilterSize: 3;
+  Sigma: Number;
 }
 
 export interface ChannelImage {
@@ -35,5 +38,8 @@ export const DEFAULT_EDITOR_PARAMS: ImageEditorParams = {
   Order: 'RGB',
   VerticalMirror: false,
   HorizontalMirror: false,
-  Magic: 0
+  Magic: 0,
+  Filter:  'none',
+  FilterSize: 3,
+  Sigma: 0,
 };
