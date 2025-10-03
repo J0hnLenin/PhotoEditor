@@ -404,3 +404,136 @@ func createRectangularKernel(size int) []float64 {
 
 	return kernel
 }
+
+func ColorTransform(img imatix.Image, lambda, threshold, constant float64, low, high uint8, useConstant bool) imatix.Image {
+	result := copyImage(img)
+
+	// 1.1 Логарифмическое преобразование (автоподбор коэффициента c)
+	result = logarithmicTransformAuto(result)
+
+	// 1.2 Степенное преобразование с заданной гаммой (автоподбор коэффициента c)
+	result = powerTransformAuto(result, lambda)
+
+	// 1.3 Бинарное преобразование с заданным порогом
+	result = binaryTransform(result, uint8(threshold))
+
+	// 1.4 Вырезание диапазона яркостей
+	if useConstant {
+		// 1.4.1 Приведение к константному значению
+		result = intensitySliceConstant(result, low, high, uint8(constant))
+	} else {
+		// 1.4.2 Сохранение в исходном виде
+		result = intensitySlicePreserve(result, low, high)
+	}
+
+	return result
+}
+
+func logarithmicTransformAuto(img imatix.Image) imatix.Image {
+	result := copyImage(img)
+	maxBrightness := findMaxBrightness(result)
+
+	c := 255.0 / math.Log(1.0+maxBrightness)
+
+	for y := 0; y < result.Height; y++ {
+		for x := 0; x < result.Width; x++ {
+			for channel := 0; channel < 3; channel++ {
+				value := float64(result.Matrix[y][x][channel])
+				newValue := c * math.Log(1.0+value)
+				result.Matrix[y][x][channel] = transform(newValue)
+			}
+		}
+	}
+	return result
+}
+
+func powerTransformAuto(img imatix.Image, gamma float64) imatix.Image {
+	result := copyImage(img)
+	maxBrightness := findMaxBrightness(result)
+
+	c := 255.0 / math.Pow(maxBrightness/255.0, gamma)
+
+	for y := 0; y < result.Height; y++ {
+		for x := 0; x < result.Width; x++ {
+			for channel := 0; channel < 3; channel++ {
+				normalized := float64(result.Matrix[y][x][channel]) / 255.0
+				transformed := c * math.Pow(normalized, gamma)
+				result.Matrix[y][x][channel] = transform(transformed)
+			}
+		}
+	}
+	return result
+}
+
+func binaryTransform(img imatix.Image, threshold uint8) imatix.Image {
+	result := copyImage(img)
+
+	for y := 0; y < result.Height; y++ {
+		for x := 0; x < result.Width; x++ {
+			for channel := 0; channel < 3; channel++ {
+
+				if result.Matrix[y][x][channel] >= threshold {
+					result.Matrix[y][x][channel] = 255
+				} else {
+					result.Matrix[y][x][channel] = 0
+				}
+			}
+		}
+	}
+	return result
+}
+
+func intensitySliceConstant(img imatix.Image, lowThreshold, highThreshold, constantValue uint8) imatix.Image {
+	result := copyImage(img)
+
+	for y := 0; y < result.Height; y++ {
+		for x := 0; x < result.Width; x++ {
+			gray := uint8(0.299*float32(result.Matrix[y][x][0]) +
+				0.587*float32(result.Matrix[y][x][1]) +
+				0.114*float32(result.Matrix[y][x][2]))
+
+			if gray >= lowThreshold && gray <= highThreshold {
+
+				result.Matrix[y][x] = [3]uint8{constantValue, constantValue, constantValue}
+			}
+
+		}
+	}
+	return result
+}
+
+func intensitySlicePreserve(img imatix.Image, lowThreshold, highThreshold uint8) imatix.Image {
+	result := copyImage(img)
+
+	for y := 0; y < result.Height; y++ {
+		for x := 0; x < result.Width; x++ {
+			gray := uint8(0.299*float32(result.Matrix[y][x][0]) +
+				0.587*float32(result.Matrix[y][x][1]) +
+				0.114*float32(result.Matrix[y][x][2]))
+
+			if gray >= lowThreshold && gray <= highThreshold {
+
+				continue
+			} else {
+
+				result.Matrix[y][x] = [3]uint8{0, 0, 0}
+			}
+		}
+	}
+	return result
+}
+
+func findMaxBrightness(img imatix.Image) float64 {
+	maxVal := 0.0
+	for y := 0; y < img.Height; y++ {
+		for x := 0; x < img.Width; x++ {
+			for channel := 0; channel < 3; channel++ {
+				val := float64(img.Matrix[y][x][channel])
+				if val > maxVal {
+					maxVal = val
+				}
+			}
+		}
+	}
+	return maxVal
+}
