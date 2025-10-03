@@ -33,11 +33,17 @@ func Redact(imputImage imatix.Image, parameters imatix.Parameters) imatix.Image 
 	if parameters.Magic != 0.0 {
 		processors.Magic(imputImage, parameters.Magic)
 	}
-	if parameters.Filter == "gaussian" {
-		imputImage = processors.GaussianFilter(imputImage, 1.0)
+	if parameters.Filter == "gaussian" && parameters.Sigma > 0 {
+		imputImage = processors.GaussianFilter(imputImage, parameters.Sigma)
 	}
-	if parameters.Filter == "sigma" {
-		imputImage = processors.SigmaFilter(imputImage, parameters.Sigma, 2)
+	if parameters.Filter == "sigma" && parameters.Sigma > 0 {
+		imputImage = processors.SigmaFilter(imputImage, parameters.Sigma, float64(parameters.Interval))
+	}
+	if parameters.Filter == "median" {
+		imputImage = processors.MedianFilter(imputImage, parameters.FilterSize)
+	}
+	if parameters.Filter == "rectangular" {
+		imputImage = processors.RectangularFilter(imputImage, parameters.FilterSize)
 	}
 	// ApplyCore - новая функция чтобы избежать дублирования.
 	// Можно код отрефакторить, прическать.

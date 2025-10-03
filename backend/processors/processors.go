@@ -2,6 +2,7 @@ package processors
 
 import (
 	"math"
+	"sort"
 
 	imatix "github.com/J0hnLenin/ComputerVision/imatrix"
 )
@@ -201,9 +202,6 @@ func createGaussianKernel(size int, sigma float64) []float64 {
 		kernel[i+radius] = value
 		sum += value
 	}
-	for i := 0; i < size; i++ {
-		kernel[i] /= sum
-	}
 
 	return kernel
 }
@@ -326,4 +324,83 @@ func SigmaFilter(img imatix.Image, sigma float64, k float64) imatix.Image {
 		}
 	}
 	return img
+}
+
+func MedianFilter(img imatix.Image, kernelSize int) imatix.Image {
+	if kernelSize <= 1 {
+		return img
+	}
+
+	temp := copyImage(img)
+	radius := kernelSize / 2
+	windowSize := kernelSize * kernelSize
+
+	for y := 0; y < img.Height; y++ {
+		for x := 0; x < img.Width; x++ {
+
+			windowR := make([]uint8, 0, windowSize)
+			windowG := make([]uint8, 0, windowSize)
+			windowB := make([]uint8, 0, windowSize)
+
+			for dy := -radius; dy <= radius; dy++ {
+				for dx := -radius; dx <= radius; dx++ {
+					nx, ny := x+dx, y+dy
+
+					if nx >= 0 && nx < img.Width && ny >= 0 && ny < img.Height {
+						pixel := temp.Matrix[ny][nx]
+						windowR = append(windowR, pixel[0])
+						windowG = append(windowG, pixel[1])
+						windowB = append(windowB, pixel[2])
+					}
+				}
+			}
+
+			if len(windowR) > 0 {
+				img.Matrix[y][x] = [3]uint8{
+					median(windowR),
+					median(windowG),
+					median(windowB),
+				}
+			}
+		}
+	}
+	return img
+}
+
+func median(data []uint8) uint8 {
+	if len(data) == 0 {
+		return 0
+	}
+
+	sorted := make([]uint8, len(data))
+	copy(sorted, data)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i] < sorted[j] })
+
+	middle := len(sorted) / 2
+	return sorted[middle]
+}
+
+func RectangularFilter(img imatix.Image, kernelSize int) imatix.Image {
+	if kernelSize <= 1 {
+		return img
+	}
+
+	kernel := createRectangularKernel(kernelSize)
+	temp := copyImage(img)
+
+	applyConvolution(img, temp, kernel, true)
+	applyConvolution(temp, img, kernel, false)
+
+	return img
+}
+
+func createRectangularKernel(size int) []float64 {
+	kernel := make([]float64, size)
+	value := 1.0 / float64(size)
+
+	for i := 0; i < size; i++ {
+		kernel[i] = value
+	}
+
+	return kernel
 }

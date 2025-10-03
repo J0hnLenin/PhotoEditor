@@ -11,6 +11,7 @@ export interface ImageEditorParams {
   Filter: string;
   FilterSize: 3;
   Sigma: Number;
+  Interval: Number;
 }
 
 export interface ChannelImage {
@@ -42,4 +43,5 @@ export const DEFAULT_EDITOR_PARAMS: ImageEditorParams = {
   Filter:  'none',
   FilterSize: 3,
   Sigma: 0,
+  Interval: 1,
 };

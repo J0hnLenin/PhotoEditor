@@ -41,4 +41,5 @@ type Parameters struct {
 	Filter                string
 	FilterSize            int
 	Sigma                 float64
+	Interval              int
 }

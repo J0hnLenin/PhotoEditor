@@ -124,10 +124,11 @@
         <option value="gaussian">Гауссово размытие</option>
         <option value="median">Медианный фильтр</option>
         <option value="sigma">Сигма фильтр</option>
+        <option value="rectangular">Прямоугольный фильтр</option>
       </select>
     </div>
 
-    <div v-if="localParams.Filter !== 'none'" class="filter-params">
+    <div v-if="localParams.Filter === 'median' || localParams.Filter === 'rectangular'" class="filter-params">
       <div class="control-group">
         <label>Размер ядра: {{ localParams.FilterSize }}×{{ localParams.FilterSize }}</label>
         <select 
@@ -136,13 +137,32 @@
         >
           <option value="3">3×3</option>
           <option value="5">5×5</option>
-          <option value="7">7×7</option>
-          <option value="9">9×9</option>
-          <option value="11">11×11</option>
         </select>
       </div>
     </div>
+    <div v-if="localParams.Filter === 'gaussian' || localParams.Filter === 'sigma'" class="control-group">
+      <label>Sigma: {{ params.Sigma }}</label>
+      <input 
+        type="range" 
+        min="0" 
+        step="0.1"
+        max="10" 
+        v-model.number="localParams.Sigma"
+        @input="updateParam('Sigma', $event)"
+      />
     </div>
+    <div v-if="localParams.Filter === 'sigma'" class="control-group">
+      <label>Interval: {{ params.Interval }}</label>
+      <input 
+        type="range" 
+        min="1" 
+        max="100" 
+        v-model.number="localParams.Interval"
+        @input="updateParam('Interval', $event)"
+      />
+    </div>
+
+  </div>
 </template>
 
 <script lang="ts">
@@ -162,7 +182,8 @@ const DEFAULT_PARAMS: ImageEditorParams = {
   Magic: 0,
   Filter: 'none',
   FilterSize: 3,
-  Sigma: 0
+  Sigma: 0,
+  Interval: 1,
 };
 
 export default defineComponent({

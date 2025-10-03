@@ -93,6 +93,7 @@ export const DEFAULT_PARAMS: ImageEditorParams = {
   Filter:  'none',
   FilterSize: 3,
   Sigma: 0,
+  Interval: 1,
 };
 
 export default defineComponent({

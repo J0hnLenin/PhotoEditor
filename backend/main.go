@@ -128,7 +128,8 @@ func parseQuery(queryParameters url.Values) imatix.Parameters {
 	magic, _ := strconv.Atoi(queryParameters.Get("Magic"))
 	filter := queryParameters.Get("Filter")
 	filterSize, _ := strconv.Atoi(queryParameters.Get("FilterSize"))
-	sigma, _ := strconv.Atoi(queryParameters.Get("Sigma"))
+	sigma, _ := strconv.ParseFloat(queryParameters.Get("Sigma"), 64)
+	interval, _ := strconv.Atoi(queryParameters.Get("Interval"))
 	return imatix.Parameters{
 		RedBrightness:         float64(200-redBrightness) / 100,
 		GreenBrightness:       float64(200-greenBrightness) / 100,
@@ -142,7 +143,8 @@ func parseQuery(queryParameters url.Values) imatix.Parameters {
 		Magic:                 magic,
 		Filter:                filter,
 		FilterSize:            filterSize,
-		Sigma:                 float64(sigma),
+		Sigma:                 sigma,
+		Interval:              interval,
 	}
 
 }
