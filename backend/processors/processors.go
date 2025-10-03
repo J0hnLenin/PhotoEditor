@@ -15,6 +15,10 @@ var Functions = map[string]ImageProccessor{
 	"gray":  GrayScale,
 }
 
+var core = map[string]imatix.ProccessorCore{
+	"logarithmicBrightness": logarithmicBrightnessCore,
+}
+
 func Red(img imatix.Image) {
 	for i := 0; i < img.Height; i++ {
 		for j := 0; j < img.Width; j++ {
@@ -176,4 +180,12 @@ func ChangeOrder(img imatix.Image, order string) imatix.Image {
 	}
 
 	return newImage
+}
+
+func ApplyCore(img imatix.Image, parameterName string, parameterValue float64) {
+	img.Apply(core[parameterName], parameterValue)
+}
+
+func logarithmicBrightnessCore(value float64, c float64) float64 {
+	return c * math.Log(1.0+value)
 }

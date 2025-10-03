@@ -33,5 +33,11 @@ func Redact(imputImage imatix.Image, parameters imatix.Parameters) imatix.Image 
 	if parameters.Magic != 0.0 {
 		processors.Magic(imputImage, parameters.Magic)
 	}
+	// ApplyCore - новая функция чтобы избежать дублирования.
+	// Можно код отрефакторить, прическать.
+	// Новые обработчики добавлять в этом формате.
+	if parameters.LogarithmicBrightness != 1.0 {
+		processors.ApplyCore(imputImage, "LogarithmicBrightness", parameters.LogarithmicBrightness)
+	}
 	return imputImage
 }

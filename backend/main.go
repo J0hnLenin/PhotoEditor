@@ -116,6 +116,7 @@ func parseQuery(queryParameters url.Values) imatix.Parameters {
 	if blueBrightness == 0 {
 		blueBrightness = 100
 	}
+	logarithmicBrightness, _ := strconv.Atoi(queryParameters.Get("LogarithmicBrightness"))
 	contrast, _ := strconv.Atoi(queryParameters.Get("Contrast"))
 	if contrast == 0 {
 		contrast = 100
@@ -127,15 +128,16 @@ func parseQuery(queryParameters url.Values) imatix.Parameters {
 	magic, _ := strconv.Atoi(queryParameters.Get("Magic"))
 
 	return imatix.Parameters{
-		RedBrightness:    float64(200-redBrightness) / 100,
-		GreenBrightness:  float64(200-greenBrightness) / 100,
-		BlueBrightness:   float64(200-blueBrightness) / 100,
-		Contrast:         float64(contrast) / 100,
-		Negative:         negative,
-		Order:            order,
-		VerticalMirror:   verticalMirror,
-		HorizontalMirror: horizontalMirror,
-		Magic:            magic,
+		RedBrightness:         float64(200-redBrightness) / 100,
+		GreenBrightness:       float64(200-greenBrightness) / 100,
+		BlueBrightness:        float64(200-blueBrightness) / 100,
+		LogarithmicBrightness: float64(logarithmicBrightness) / 100,
+		Contrast:              float64(contrast) / 100,
+		Negative:              negative,
+		Order:                 order,
+		VerticalMirror:        verticalMirror,
+		HorizontalMirror:      horizontalMirror,
+		Magic:                 magic,
 	}
 
 }
@@ -165,11 +167,11 @@ func imageRedactorHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173", "http://127.0.0.1:5173"}, // URL вашего Vue приложения
+		AllowedOrigins:   []string{"http://localhost:5173", "http://127.0.0.1:5173"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
-		Debug:            true, // Включите для отладки, в продакшене установите false
+		Debug:            true,
 	})
 
 	r := mux.NewRouter()
