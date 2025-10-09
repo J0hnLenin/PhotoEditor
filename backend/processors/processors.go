@@ -66,7 +66,7 @@ func ChangeBrightness(img imatix.Image, color int, brightness float64) {
 		for j := 0; j < img.Width; j++ {
 			value := float64(img.Matrix[i][j][color]) / 255
 			value = float64(math.Pow(value, brightness) * 255)
-			img.Matrix[i][j][color] = transform(value)
+			img.Matrix[i][j][color] = clip(value)
 		}
 	}
 }
@@ -80,13 +80,13 @@ func ChangeContrast(img imatix.Image, contrast float64) {
 					oldValue := float64(img.Matrix[i][j][k]) / 255
 					newValue := 1.0 / (1.0 + math.Exp(gamma*(0.5-oldValue)))
 					average := ((contrast-1.0)*newValue + (2.0-contrast)*oldValue)
-					img.Matrix[i][j][k] = transform(average * 255.0)
+					img.Matrix[i][j][k] = clip(average * 255.0)
 				} else if contrast < 1.0 {
 					gamma := 1 / 30.0
 					oldValue := float64(img.Matrix[i][j][k]) / 255
 					newValue := 1.0 / (1.0 + math.Exp(gamma*(0.5-oldValue)))
 					average := ((1.0-contrast)*newValue + (contrast)*oldValue)
-					img.Matrix[i][j][k] = transform(average * 255.0)
+					img.Matrix[i][j][k] = clip(average * 255.0)
 				}
 			}
 
@@ -140,7 +140,7 @@ func Magic(img imatix.Image, t int) {
 	}
 }
 
-func transform(v float64) uint8 {
+func clip(v float64) uint8 {
 	if v > 255 {
 		v = 255.0
 	} else if v < 0 {
@@ -207,7 +207,7 @@ func createGaussianKernel(size int, sigma float64) []float64 {
 }
 
 // оптимизация для одномерных
-func applyConvolution(src, dst imatix.Image, kernel []float64, horizontal bool) {
+func applyConvolution(src imatix.Image, dst imatix.Image, kernel []float64, horizontal bool) {
 	radius := len(kernel) / 2
 
 	for y := 0; y < src.Height; y++ {
@@ -243,9 +243,9 @@ func applyConvolution(src, dst imatix.Image, kernel []float64, horizontal bool) 
 
 			if weightSum > 0 {
 				dst.Matrix[y][x] = [3]uint8{
-					transform(sumR / weightSum),
-					transform(sumG / weightSum),
-					transform(sumB / weightSum),
+					clip(sumR / weightSum),
+					clip(sumG / weightSum),
+					clip(sumB / weightSum),
 				}
 			}
 		}
@@ -316,9 +316,9 @@ func SigmaFilter(img imatix.Image, sigma float64, k float64) imatix.Image {
 
 			if count > 0 {
 				img.Matrix[y][x] = [3]uint8{
-					transform(sumR / float64(count)),
-					transform(sumG / float64(count)),
-					transform(sumB / float64(count)),
+					clip(sumR / float64(count)),
+					clip(sumG / float64(count)),
+					clip(sumB / float64(count)),
 				}
 			}
 		}
@@ -405,17 +405,17 @@ func createRectangularKernel(size int) []float64 {
 	return kernel
 }
 
-func ColorTransform(img imatix.Image, lambda, threshold, constant float64, low, high uint8, useConstant bool) imatix.Image {
+func Colorclip(img imatix.Image, lambda, threshold, constant float64, low, high uint8, useConstant bool) imatix.Image {
 	result := copyImage(img)
 
 	// 1.1 Логарифмическое преобразование (автоподбор коэффициента c)
-	result = logarithmicTransformAuto(result)
+	result = logarithmicclipAuto(result)
 
 	// 1.2 Степенное преобразование с заданной гаммой (автоподбор коэффициента c)
-	result = powerTransformAuto(result, lambda)
+	result = powerclipAuto(result, lambda)
 
 	// 1.3 Бинарное преобразование с заданным порогом
-	result = binaryTransform(result, uint8(threshold))
+	result = binaryclip(result, uint8(threshold))
 
 	// 1.4 Вырезание диапазона яркостей
 	if useConstant {
@@ -426,7 +426,7 @@ func ColorTransform(img imatix.Image, lambda, threshold, constant float64, low, 
 	return result
 }
 
-func logarithmicTransformAuto(img imatix.Image) imatix.Image {
+func logarithmicclipAuto(img imatix.Image) imatix.Image {
 	result := copyImage(img)
 	maxBrightness := findMaxBrightness(result)
 
@@ -437,14 +437,14 @@ func logarithmicTransformAuto(img imatix.Image) imatix.Image {
 			for channel := 0; channel < 3; channel++ {
 				value := float64(result.Matrix[y][x][channel])
 				newValue := c * math.Log(1.0+value)
-				result.Matrix[y][x][channel] = transform(newValue)
+				result.Matrix[y][x][channel] = clip(newValue)
 			}
 		}
 	}
 	return result
 }
 
-func powerTransformAuto(img imatix.Image, gamma float64) imatix.Image {
+func powerclipAuto(img imatix.Image, gamma float64) imatix.Image {
 	result := copyImage(img)
 	maxBrightness := findMaxBrightness(result)
 
@@ -454,15 +454,15 @@ func powerTransformAuto(img imatix.Image, gamma float64) imatix.Image {
 		for x := 0; x < result.Width; x++ {
 			for channel := 0; channel < 3; channel++ {
 				normalized := float64(result.Matrix[y][x][channel]) / 255.0
-				transformed := c * math.Pow(normalized, gamma)
-				result.Matrix[y][x][channel] = transform(transformed)
+				cliped := c * math.Pow(normalized, gamma)
+				result.Matrix[y][x][channel] = clip(cliped)
 			}
 		}
 	}
 	return result
 }
 
-func binaryTransform(img imatix.Image, threshold uint8) imatix.Image {
+func binaryclip(img imatix.Image, threshold uint8) imatix.Image {
 	result := copyImage(img)
 
 	for y := 0; y < result.Height; y++ {

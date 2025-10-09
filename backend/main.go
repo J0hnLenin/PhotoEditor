@@ -9,7 +9,9 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strconv"
+	"strings"
 
 	imatix "github.com/J0hnLenin/ComputerVision/imatrix"
 	"github.com/J0hnLenin/ComputerVision/processors"
@@ -173,8 +175,16 @@ func imageRedactorHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+
+	allowedOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if allowedOrigins == "" {
+		allowedOrigins = "http://localhost,http://127.0.0.1,http://localhost:80,http://127.0.0.1:80"
+	}
+	fmt.Println(allowedOrigins)
+	origins := strings.Split(allowedOrigins, ",")
+
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173", "http://127.0.0.1:5173"},
+		AllowedOrigins:   origins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
