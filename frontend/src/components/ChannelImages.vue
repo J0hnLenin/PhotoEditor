@@ -25,7 +25,7 @@
         />
         
         <div v-else class="histogram-placeholder">
-          Загрузка гистограммы...
+          ...
         </div>
       </div>
     </div>
@@ -64,7 +64,7 @@ export default defineComponent({
         green: 'Зеленый',
         blue: 'Синий',
         gray: 'Серый',
-        // changes: 'Изменения'
+        changes: 'Изменения'
       };
       return labels[type];
     },
@@ -75,7 +75,7 @@ export default defineComponent({
         green: '#28a745',
         blue: '#007bff',
         gray: '#6c757d',
-        // changes: '#6c757d'
+        changes: '#6c757d'
       };
       return colors[type];
     }

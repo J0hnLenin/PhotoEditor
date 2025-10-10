@@ -5,8 +5,9 @@ import (
 	"github.com/J0hnLenin/ComputerVision/processors"
 )
 
-func Redact(inputImage imatix.Image, parameters imatix.Parameters) imatix.Image {
-	var bluredImage imatix.Image
+func Redact(inputImage imatix.Image, parameters imatix.Parameters) (imatix.Image, imatix.Image) {
+
+	originalCopy := processors.CopyImage(inputImage)
 
 	if parameters.Order != "RGB" && parameters.Order != "" {
 		inputImage = processors.ChangeOrder(inputImage, parameters.Order)
@@ -37,6 +38,7 @@ func Redact(inputImage imatix.Image, parameters imatix.Parameters) imatix.Image 
 	}
 
 	temp := processors.CopyImage(inputImage)
+	bluredImage := temp
 
 	if parameters.Filter == "gaussian" && parameters.Sigma > 0 {
 		bluredImage = processors.GaussianFilter(inputImage, parameters.FilterSize, parameters.Sigma)
@@ -56,11 +58,12 @@ func Redact(inputImage imatix.Image, parameters imatix.Parameters) imatix.Image 
 	} else {
 		inputImage = bluredImage
 	}
+	changes := processors.Changes(originalCopy, inputImage)
 	// ApplyCore - новая функция чтобы избежать дублирования.
 	// Можно код отрефакторить, прическать.
 	// Новые обработчики добавлять в этом формате.
 	//if parameters.LogarithmicBrightness != 1.0 {
 	//	processors.ApplyCore(inputImage, "LogarithmicBrightness", parameters.LogarithmicBrightness)
 	//}
-	return inputImage
+	return changes, inputImage
 }

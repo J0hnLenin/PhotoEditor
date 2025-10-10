@@ -267,6 +267,23 @@ func GaussianFilter(img imatix.Image, size int, sigma float64) imatix.Image {
 	return img
 }
 
+func Changes(a imatix.Image, b imatix.Image) imatix.Image {
+	img := CopyImage(b)
+
+	for i := 0; i < b.Height; i++ {
+		for j := 0; j < b.Width; j++ {
+			for k := 0; k < 3; k++ {
+				aValue := imatix.PixelToContinuous(a.Matrix[i][j][k])
+				bValue := imatix.PixelToContinuous(b.Matrix[i][j][k])
+				img.Matrix[i][j][k] = clip(
+					(1 - math.Abs(aValue-bValue)) * 255,
+				)
+			}
+		}
+	}
+	return img
+}
+
 func UnsharpMasking(img imatix.Image, blured imatix.Image, power float64) imatix.Image {
 	if power <= 0 {
 		return img

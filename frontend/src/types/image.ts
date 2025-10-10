@@ -16,7 +16,7 @@ export interface ImageEditorParams {
 }
 
 export interface ChannelImage {
-  type: 'red' | 'green' | 'blue' | 'gray';
+  type: 'red' | 'green' | 'blue' | 'gray' | 'changes';
   url: string;
   histogram?: number[];
 }

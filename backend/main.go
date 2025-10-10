@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	imatix "github.com/J0hnLenin/ComputerVision/imatrix"
-	"github.com/J0hnLenin/ComputerVision/processors"
 	"github.com/J0hnLenin/ComputerVision/redactor"
 	"github.com/J0hnLenin/ComputerVision/statistics"
 	"github.com/gorilla/mux"
@@ -60,50 +59,6 @@ func imageSerializer(img imatix.Image) image.Image {
 		}
 	}
 	return newImg
-}
-
-func imageApplyHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	funcName := vars["func"]
-	processor, exists := processors.Functions[funcName]
-	if !exists {
-		http.Error(w, "Invalid name of function", http.StatusNotFound)
-		return
-	}
-
-	img, err := png.Decode(r.Body)
-	if err != nil {
-		http.Error(w, "Can't decode image", http.StatusBadRequest)
-		return
-	}
-
-	formatedImage := imageDeserializer(img)
-	processor(formatedImage)
-	newImg := imageSerializer(formatedImage)
-
-	w.Header().Set("Content-Type", "image/png")
-
-	if err := png.Encode(w, newImg); err != nil {
-		http.Error(w, "Failed to encode image", http.StatusInternalServerError)
-		return
-	}
-}
-
-func imageStatisticsHandler(w http.ResponseWriter, r *http.Request) {
-	img, err := png.Decode(r.Body)
-	if err != nil {
-		http.Error(w, "Can't decode image", http.StatusBadRequest)
-		return
-	}
-
-	formatedImage := imageDeserializer(img)
-	stats := statistics.GetStatistics(formatedImage)
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(stats); err != nil {
-		http.Error(w, "JSON encoding error", http.StatusInternalServerError)
-		return
-	}
 }
 
 func parseQuery(queryParameters url.Values) imatix.Parameters {
@@ -207,7 +162,7 @@ func imageRedactorHandler(w http.ResponseWriter, r *http.Request) {
 
 	originalFormatedImage := imageDeserializer(img)
 
-	redactedImage := redactor.Redact(originalFormatedImage, parameters)
+	changesImage, redactedImage := redactor.Redact(originalFormatedImage, parameters)
 
 	redChannel := processChannel(originalFormatedImage, "Red")
 	greenChannel := processChannel(originalFormatedImage, "Green")
@@ -266,6 +221,16 @@ func imageRedactorHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := png.Encode(grayPart, imageSerializer(grayChannel)); err != nil {
 		http.Error(w, "Failed to encode gray channel image", http.StatusInternalServerError)
+		return
+	}
+
+	changesPart, err := writer.CreateFormFile("changes_channel", "changes_channel"+header.Filename)
+	if err != nil {
+		http.Error(w, "Can't create form file for changes channel", http.StatusInternalServerError)
+		return
+	}
+	if err := png.Encode(changesPart, imageSerializer(changesImage)); err != nil {
+		http.Error(w, "Failed to encode changes channel image", http.StatusInternalServerError)
 		return
 	}
 

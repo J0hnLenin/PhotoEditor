@@ -200,7 +200,7 @@ export default defineComponent({
           const greenChannelBlob = responseFormData.get('green_channel') as Blob;
           const blueChannelBlob = responseFormData.get('blue_channel') as Blob;
           const grayChannelBlob = responseFormData.get('gray_channel') as Blob;
-          // const ChangesChannelBlob = responseFormData.get('changes_channel') as Blob;
+          const ChangesChannelBlob = responseFormData.get('changes_channel') as Blob;
           
           // Получаем статистику
           const statisticsText = responseFormData.get('statistics') as string;
@@ -232,11 +232,11 @@ export default defineComponent({
               url: URL.createObjectURL(grayChannelBlob), 
               histogram: statistics.Brightness?.Gray ? Array.from(statistics.Brightness.Gray) : undefined 
             },
-            // { 
-            //   type: 'changes', 
-            //   url: URL.createObjectURL(ChangesChannelBlob), 
-            //   histogram: statistics.Brightness?.Gray ? Array.from(statistics.Brightness.Gray) : undefined  
-            // },
+            { 
+              type: 'changes', 
+              url: URL.createObjectURL(ChangesChannelBlob), 
+              histogram: undefined  
+            },
           ];
 
           // Сохраняем статистику
