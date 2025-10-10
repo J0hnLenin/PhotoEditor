@@ -252,13 +252,13 @@ func applyConvolution(src imatix.Image, dst imatix.Image, kernel []float64, hori
 	}
 }
 
-func GaussianFilter(img imatix.Image, sigma float64) imatix.Image {
+func GaussianFilter(img imatix.Image, size int, sigma float64) imatix.Image {
 	if sigma <= 0 {
 		return img
 	}
 
-	kernel := createGaussianKernel(3, sigma) //одномерное ядро обязательно для Convolution
-	temp := copyImage(img)
+	kernel := createGaussianKernel(size, sigma) //одномерное ядро обязательно для Convolution
+	temp := CopyImage(img)
 
 	// Горизонтально
 	applyConvolution(img, temp, kernel, true)
@@ -267,7 +267,26 @@ func GaussianFilter(img imatix.Image, sigma float64) imatix.Image {
 	return img
 }
 
-func copyImage(img imatix.Image) imatix.Image {
+func UnsharpMasking(img imatix.Image, blured imatix.Image, power float64) imatix.Image {
+	if power <= 0 {
+		return img
+	}
+
+	for i := 0; i < img.Height; i++ {
+		for j := 0; j < img.Width; j++ {
+			for k := 0; k < 3; k++ {
+				imgValue := imatix.PixelToContinuous(img.Matrix[i][j][k])
+				bluredValue := imatix.PixelToContinuous(blured.Matrix[i][j][k])
+				img.Matrix[i][j][k] = clip(
+					(imgValue + power*(imgValue-bluredValue)) * 255,
+				)
+			}
+		}
+	}
+	return img
+}
+
+func CopyImage(img imatix.Image) imatix.Image {
 	copyImg := imatix.Image{
 		Matrix: make([][][3]uint8, img.Height),
 		Height: img.Height,
@@ -282,9 +301,9 @@ func copyImage(img imatix.Image) imatix.Image {
 	return copyImg
 }
 
-func SigmaFilter(img imatix.Image, sigma float64, k float64) imatix.Image {
-	temp := copyImage(img)
-	radius := 2
+func SigmaFilter(img imatix.Image, size int, sigma float64, k float64) imatix.Image {
+	temp := CopyImage(img)
+	radius := (size - 1) / 2
 
 	for y := 0; y < img.Height; y++ {
 		for x := 0; x < img.Width; x++ {
@@ -331,7 +350,7 @@ func MedianFilter(img imatix.Image, kernelSize int) imatix.Image {
 		return img
 	}
 
-	temp := copyImage(img)
+	temp := CopyImage(img)
 	radius := kernelSize / 2
 	windowSize := kernelSize * kernelSize
 
@@ -386,7 +405,7 @@ func RectangularFilter(img imatix.Image, kernelSize int) imatix.Image {
 	}
 
 	kernel := createRectangularKernel(kernelSize)
-	temp := copyImage(img)
+	temp := CopyImage(img)
 
 	applyConvolution(img, temp, kernel, true)
 	applyConvolution(temp, img, kernel, false)
@@ -406,7 +425,7 @@ func createRectangularKernel(size int) []float64 {
 }
 
 func Colorclip(img imatix.Image, lambda, threshold, constant float64, low, high uint8, useConstant bool) imatix.Image {
-	result := copyImage(img)
+	result := CopyImage(img)
 
 	// 1.1 Логарифмическое преобразование (автоподбор коэффициента c)
 	result = logarithmicclipAuto(result)
@@ -427,7 +446,7 @@ func Colorclip(img imatix.Image, lambda, threshold, constant float64, low, high 
 }
 
 func logarithmicclipAuto(img imatix.Image) imatix.Image {
-	result := copyImage(img)
+	result := CopyImage(img)
 	maxBrightness := findMaxBrightness(result)
 
 	c := 255.0 / math.Log(1.0+maxBrightness)
@@ -445,7 +464,7 @@ func logarithmicclipAuto(img imatix.Image) imatix.Image {
 }
 
 func powerclipAuto(img imatix.Image, gamma float64) imatix.Image {
-	result := copyImage(img)
+	result := CopyImage(img)
 	maxBrightness := findMaxBrightness(result)
 
 	c := 255.0 / math.Pow(maxBrightness/255.0, gamma)
@@ -463,7 +482,7 @@ func powerclipAuto(img imatix.Image, gamma float64) imatix.Image {
 }
 
 func binaryclip(img imatix.Image, threshold uint8) imatix.Image {
-	result := copyImage(img)
+	result := CopyImage(img)
 
 	for y := 0; y < result.Height; y++ {
 		for x := 0; x < result.Width; x++ {
@@ -481,7 +500,7 @@ func binaryclip(img imatix.Image, threshold uint8) imatix.Image {
 }
 
 func intensitySliceConstant(img imatix.Image, lowThreshold, highThreshold, constantValue uint8) imatix.Image {
-	result := copyImage(img)
+	result := CopyImage(img)
 
 	for y := 0; y < result.Height; y++ {
 		for x := 0; x < result.Width; x++ {
