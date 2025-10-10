@@ -42,4 +42,5 @@ type Parameters struct {
 	FilterSize            int
 	Sigma                 float64
 	Interval              int
+	UnsharpMasking        float64
 }

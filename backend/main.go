@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"image/png"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -132,6 +133,7 @@ func parseQuery(queryParameters url.Values) imatix.Parameters {
 	filterSize, _ := strconv.Atoi(queryParameters.Get("FilterSize"))
 	sigma, _ := strconv.ParseFloat(queryParameters.Get("Sigma"), 64)
 	interval, _ := strconv.Atoi(queryParameters.Get("Interval"))
+	unsharpMasking, _ := strconv.ParseFloat(queryParameters.Get("UnsharpMasking"), 64)
 	return imatix.Parameters{
 		RedBrightness:         float64(200-redBrightness) / 100,
 		GreenBrightness:       float64(200-greenBrightness) / 100,
@@ -147,31 +149,146 @@ func parseQuery(queryParameters url.Values) imatix.Parameters {
 		FilterSize:            filterSize,
 		Sigma:                 sigma,
 		Interval:              interval,
+		UnsharpMasking:        unsharpMasking,
 	}
 
 }
 
+func processChannel(originalImage imatix.Image, channelName string) imatix.Image {
+	channelImage := imatix.Image{
+		Width:  originalImage.Width,
+		Height: originalImage.Height,
+		Matrix: make([][][3]uint8, originalImage.Height),
+	}
+
+	for y := 0; y < originalImage.Height; y++ {
+		channelImage.Matrix[y] = make([][3]uint8, originalImage.Width)
+		for x := 0; x < originalImage.Width; x++ {
+			pixel := originalImage.Matrix[y][x]
+			switch channelName {
+			case "Red":
+				channelImage.Matrix[y][x] = [3]uint8{pixel[0], 0, 0}
+			case "Green":
+				channelImage.Matrix[y][x] = [3]uint8{0, pixel[1], 0}
+			case "Blue":
+				channelImage.Matrix[y][x] = [3]uint8{0, 0, pixel[2]}
+			case "Gray":
+				gray := uint8(0.299*float64(pixel[0]) + 0.587*float64(pixel[1]) + 0.114*float64(pixel[2]))
+				channelImage.Matrix[y][x] = [3]uint8{gray, gray, gray}
+			}
+		}
+	}
+	return channelImage
+}
+
 func imageRedactorHandler(w http.ResponseWriter, r *http.Request) {
-	img, err := png.Decode(r.Body)
+	err := r.ParseMultipartForm(32 << 20)
+	if err != nil {
+		http.Error(w, "Can't parse form data", http.StatusBadRequest)
+		return
+	}
+
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		http.Error(w, "Can't get image from form data", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	fmt.Printf("Processing file: %s, Size: %d bytes\n", header.Filename, header.Size)
+
+	parameters := parseQuery(r.URL.Query())
+
+	img, err := png.Decode(file)
 	if err != nil {
 		http.Error(w, "Can't decode image", http.StatusBadRequest)
 		return
 	}
 
-	parameters := parseQuery(r.URL.Query())
+	originalFormatedImage := imageDeserializer(img)
 
-	formatedImage := imageDeserializer(img)
+	redactedImage := redactor.Redact(originalFormatedImage, parameters)
 
-	redactedImage := redactor.Redact(formatedImage, parameters)
+	redChannel := processChannel(originalFormatedImage, "Red")
+	greenChannel := processChannel(originalFormatedImage, "Green")
+	blueChannel := processChannel(originalFormatedImage, "Blue")
+	grayChannel := processChannel(originalFormatedImage, "Gray")
 
-	newImg := imageSerializer(redactedImage)
+	stats := statistics.GetStatistics(originalFormatedImage)
 
-	w.Header().Set("Content-Type", "image/png")
+	writer := multipart.NewWriter(w)
+	w.Header().Set("Content-Type", writer.FormDataContentType())
 
-	if err := png.Encode(w, newImg); err != nil {
-		http.Error(w, "Failed to encode image", http.StatusInternalServerError)
+	redactedPart, err := writer.CreateFormFile("redacted_image", "redacted_"+header.Filename)
+	if err != nil {
+		http.Error(w, "Can't create form file for redacted image", http.StatusInternalServerError)
 		return
 	}
+	if err := png.Encode(redactedPart, imageSerializer(redactedImage)); err != nil {
+		http.Error(w, "Failed to encode redacted image", http.StatusInternalServerError)
+		return
+	}
+
+	redPart, err := writer.CreateFormFile("red_channel", "red_channel_"+header.Filename)
+	if err != nil {
+		http.Error(w, "Can't create form file for red channel", http.StatusInternalServerError)
+		return
+	}
+	if err := png.Encode(redPart, imageSerializer(redChannel)); err != nil {
+		http.Error(w, "Failed to encode red channel image", http.StatusInternalServerError)
+		return
+	}
+
+	greenPart, err := writer.CreateFormFile("green_channel", "green_channel_"+header.Filename)
+	if err != nil {
+		http.Error(w, "Can't create form file for green channel", http.StatusInternalServerError)
+		return
+	}
+	if err := png.Encode(greenPart, imageSerializer(greenChannel)); err != nil {
+		http.Error(w, "Failed to encode green channel image", http.StatusInternalServerError)
+		return
+	}
+
+	bluePart, err := writer.CreateFormFile("blue_channel", "blue_channel_"+header.Filename)
+	if err != nil {
+		http.Error(w, "Can't create form file for blue channel", http.StatusInternalServerError)
+		return
+	}
+	if err := png.Encode(bluePart, imageSerializer(blueChannel)); err != nil {
+		http.Error(w, "Failed to encode blue channel image", http.StatusInternalServerError)
+		return
+	}
+
+	grayPart, err := writer.CreateFormFile("gray_channel", "gray_channel_"+header.Filename)
+	if err != nil {
+		http.Error(w, "Can't create form file for gray channel", http.StatusInternalServerError)
+		return
+	}
+	if err := png.Encode(grayPart, imageSerializer(grayChannel)); err != nil {
+		http.Error(w, "Failed to encode gray channel image", http.StatusInternalServerError)
+		return
+	}
+
+	statsPart, err := writer.CreateFormField("statistics")
+	if err != nil {
+		http.Error(w, "Can't create form field for statistics", http.StatusInternalServerError)
+		return
+	}
+	jsonData, err := json.Marshal(stats)
+	if err != nil {
+		http.Error(w, "JSON encoding error", http.StatusInternalServerError)
+		return
+	}
+	statsPart.Write(jsonData)
+
+	writer.WriteField("original_filename", header.Filename)
+	writer.WriteField("file_size", strconv.FormatInt(header.Size, 10))
+	writer.WriteField("image_width", strconv.Itoa(originalFormatedImage.Width))
+	writer.WriteField("image_height", strconv.Itoa(originalFormatedImage.Height))
+	writer.WriteField("processing_parameters", r.URL.RawQuery)
+	writer.WriteField("status", "success")
+
+	writer.Close()
 }
 
 func main() {
@@ -192,8 +309,6 @@ func main() {
 	})
 
 	r := mux.NewRouter()
-	r.HandleFunc("/api/v1/image/apply/{func}", imageApplyHandler).Methods("POST")
-	r.HandleFunc("/api/v1/image/statistics", imageStatisticsHandler).Methods("POST")
 	r.HandleFunc("/api/v1/image/redactor", imageRedactorHandler).Methods("POST")
 
 	handler := c.Handler(r)

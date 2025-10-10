@@ -10,8 +10,9 @@ export interface ImageEditorParams {
   Magic: number;
   Filter: string;
   FilterSize: 3;
-  Sigma: Number;
-  Interval: Number;
+  Sigma: number;
+  Interval: number;
+  UnsharpMasking: number;
 }
 
 export interface ChannelImage {
@@ -28,20 +29,3 @@ export interface BrightnessHistogram {
     Gray: number[];
   };
 }
-
-// Значения по умолчанию для сброса
-export const DEFAULT_EDITOR_PARAMS: ImageEditorParams = {
-  RedBrightness: 100,
-  GreenBrightness: 100,
-  BlueBrightness: 100,
-  Contrast: 100,
-  Negative: false,
-  Order: 'RGB',
-  VerticalMirror: false,
-  HorizontalMirror: false,
-  Magic: 0,
-  Filter:  'none',
-  FilterSize: 3,
-  Sigma: 0,
-  Interval: 1,
-};

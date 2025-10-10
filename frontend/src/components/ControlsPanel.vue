@@ -128,7 +128,7 @@
       </select>
     </div>
 
-    <div v-if="localParams.Filter === 'median' || localParams.Filter === 'rectangular'" class="filter-params">
+    <div v-if="localParams.Filter != 'none'" class="filter-params">
       <div class="control-group">
         <label>Размер ядра: {{ localParams.FilterSize }}×{{ localParams.FilterSize }}</label>
         <select 
@@ -137,6 +137,8 @@
         >
           <option value="3">3×3</option>
           <option value="5">5×5</option>
+          <option value="7">7×7</option>
+          <option value="11">11×11</option>
         </select>
       </div>
     </div>
@@ -162,6 +164,17 @@
       />
     </div>
 
+    <div v-if="localParams.Filter != 'none'" class="control-group">
+      <label>Резкость: {{ params.UnsharpMasking }}</label>
+      <input 
+        type="range" 
+        min="0"
+        step="0.01" 
+        max="10" 
+        v-model.number="localParams.UnsharpMasking"
+        @input="updateParam('UnsharpMasking', $event)"
+      />
+    </div>
   </div>
 </template>
 
@@ -184,6 +197,7 @@ const DEFAULT_PARAMS: ImageEditorParams = {
   FilterSize: 3,
   Sigma: 0,
   Interval: 1,
+  UnsharpMasking: 0,
 };
 
 export default defineComponent({

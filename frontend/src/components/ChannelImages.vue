@@ -63,7 +63,8 @@ export default defineComponent({
         red: 'Красный',
         green: 'Зеленый',
         blue: 'Синий',
-        gray: 'Серый'
+        gray: 'Серый',
+        // changes: 'Изменения'
       };
       return labels[type];
     },
@@ -73,7 +74,8 @@ export default defineComponent({
         red: '#dc3545',
         green: '#28a745',
         blue: '#007bff',
-        gray: '#6c757d'
+        gray: '#6c757d',
+        // changes: '#6c757d'
       };
       return colors[type];
     }

@@ -94,6 +94,7 @@ export const DEFAULT_PARAMS: ImageEditorParams = {
   FilterSize: 3,
   Sigma: 0,
   Interval: 1,
+  UnsharpMasking: 0,
 };
 
 export default defineComponent({
@@ -111,11 +112,11 @@ export default defineComponent({
     const processedImage = ref<string | null>(null);
     const processedImageBlob = ref<Blob | null>(null);
     const channelImages = ref<ChannelImage[]>([]);
-    const processing = ref(false);
     const channelsLoading = ref(false);
+    const processing = ref(false);
+    const currentStatistics = ref<BrightnessHistogram | null>(null);
     
     let applyTimer: number | null = null;
-    let channelsTimer: number | null = null;
 
     const editorParams = reactive<ImageEditorParams>({ ...DEFAULT_PARAMS });
 
@@ -127,98 +128,8 @@ export default defineComponent({
 
     onUnmounted(() => {
       if (applyTimer) clearTimeout(applyTimer);
-      if (channelsTimer) clearTimeout(channelsTimer);
     });
 
-    // Функция для загрузки гистограммы
-    const loadHistogram = async (imageBlob: Blob | File): Promise<BrightnessHistogram | null> => {
-    try {
-      const file = imageBlob instanceof Blob ? 
-        new File([imageBlob], 'image.png', { type: 'image/png' }) : 
-        imageBlob;
-
-      const response = await fetch('http://localhost:8000/api/v1/image/statistics', {
-        method: 'POST',
-        body: file
-      });
-
-      if (response.ok) {
-        const histogramData: BrightnessHistogram = await response.json();
-        return histogramData;
-      }
-    } catch (error) {
-      console.error('Ошибка загрузки гистограммы:', error);
-    }
-    return null;
-};
-
-    const loadChannelImages = async (imageBlob: Blob | null = null) => {
-  const imageToProcess = imageBlob || processedImageBlob.value || originalFile.value;
-  if (!imageToProcess) return;
-
-  if (channelsTimer) clearTimeout(channelsTimer);
-  
-  channelsTimer = window.setTimeout(async () => {
-    channelsLoading.value = true;
-    try {
-      const channels: ChannelImage['type'][] = ['red', 'green', 'blue', 'gray'];
-      const images: ChannelImage[] = [];
-
-      // Сначала загружаем гистограмму
-      let histogramData: BrightnessHistogram | null = null;
-      try {
-        histogramData = await loadHistogram(imageToProcess);
-      } catch (error) {
-        console.warn('Не удалось загрузить гистограмму:', error);
-        histogramData = null;
-      }
-
-      // Затем загружаем каналы
-      for (const channel of channels) {
-        try {
-          const file = imageToProcess instanceof Blob ? 
-            new File([imageToProcess], 'image.png', { type: 'image/png' }) : 
-            imageToProcess;
-
-          const channelResponse = await fetch(`http://localhost:8000/api/v1/image/apply/${channel}`, {
-            method: 'POST',
-            body: file,
-          });
-
-          if (channelResponse.ok) {
-            const blob = await channelResponse.blob();
-            const url = URL.createObjectURL(blob);
-            
-            // Добавляем гистограмму для соответствующего канала
-            let histogram: number[] | undefined = undefined;
-            
-            if (histogramData && histogramData.Brightness) {
-              const channelKey = channel.charAt(0).toUpperCase() + channel.slice(1) as keyof typeof histogramData.Brightness;
-              histogram = Array.from(histogramData.Brightness[channelKey]);
-            }
-            
-            images.push({ 
-              type: channel, 
-              url, 
-              histogram 
-            });
-          }
-        
-        } catch (error) {
-          console.error(`Ошибка загрузки канала ${channel}:`, error);
-        }
-      }
-
-      channelImages.value = images;
-    } catch (error) {
-      console.error('Общая ошибка загрузки каналов:', error);
-    } finally {
-      channelsLoading.value = false;
-    }
-  }, 1000);
-};
-
-    // Остальные функции без изменений...
     const triggerFileInput = () => {
       fileInput.value?.click();
     };
@@ -234,7 +145,11 @@ export default defineComponent({
           originalImage.value = e.target?.result as string;
           processedImage.value = null;
           processedImageBlob.value = null;
-          loadChannelImages();
+          channelImages.value = [];
+          currentStatistics.value = null;
+          
+          // При загрузке нового файла сразу применяем изменения
+          scheduleApplyChanges();
         };
         reader.readAsDataURL(file);
       }
@@ -252,34 +167,86 @@ export default defineComponent({
       
       applyTimer = window.setTimeout(async () => {
         await applyChanges();
-      }, 1000);
+      }, 500);
     };
 
     const applyChanges = async () => {
       if (!originalFile.value) return;
 
       processing.value = true;
+      channelsLoading.value = true;
       try {
         const queryParams = new URLSearchParams();
         Object.entries(editorParams).forEach(([key, value]) => {
           queryParams.append(key, value.toString());
         });
 
+        // Создаем FormData для запроса
+        const formData = new FormData();
+        formData.append('image', originalFile.value);
+
         const editorResponse = await fetch(`http://localhost:8000/api/v1/image/redactor?${queryParams}`, {
           method: 'POST',
-          body: originalFile.value
+          body: formData
         });
 
         if (editorResponse.ok) {
-          const processedBlob = await editorResponse.blob();
-          processedImageBlob.value = processedBlob;
-          processedImage.value = URL.createObjectURL(processedBlob);
-          loadChannelImages(processedBlob);
+          // Парсим multipart/form-data ответ
+          const responseFormData = await editorResponse.formData();
+          
+          // Получаем все изображения из ответа
+          const redactedImageBlob = responseFormData.get('redacted_image') as Blob;
+          const redChannelBlob = responseFormData.get('red_channel') as Blob;
+          const greenChannelBlob = responseFormData.get('green_channel') as Blob;
+          const blueChannelBlob = responseFormData.get('blue_channel') as Blob;
+          const grayChannelBlob = responseFormData.get('gray_channel') as Blob;
+          // const ChangesChannelBlob = responseFormData.get('changes_channel') as Blob;
+          
+          // Получаем статистику
+          const statisticsText = responseFormData.get('statistics') as string;
+          const statistics = JSON.parse(statisticsText);
+
+          // Обновляем основное изображение
+          processedImageBlob.value = redactedImageBlob;
+          processedImage.value = URL.createObjectURL(redactedImageBlob);
+
+          // Обновляем канальные изображения
+          channelImages.value = [
+            { 
+              type: 'red', 
+              url: URL.createObjectURL(redChannelBlob), 
+              histogram: statistics.Brightness?.Red ? Array.from(statistics.Brightness.Red) : undefined 
+            },
+            { 
+              type: 'green', 
+              url: URL.createObjectURL(greenChannelBlob), 
+              histogram: statistics.Brightness?.Green ? Array.from(statistics.Brightness.Green) : undefined 
+            },
+            { 
+              type: 'blue', 
+              url: URL.createObjectURL(blueChannelBlob), 
+              histogram: statistics.Brightness?.Blue ? Array.from(statistics.Brightness.Blue) : undefined 
+            },
+            { 
+              type: 'gray', 
+              url: URL.createObjectURL(grayChannelBlob), 
+              histogram: statistics.Brightness?.Gray ? Array.from(statistics.Brightness.Gray) : undefined 
+            },
+            // { 
+            //   type: 'changes', 
+            //   url: URL.createObjectURL(ChangesChannelBlob), 
+            //   histogram: statistics.Brightness?.Gray ? Array.from(statistics.Brightness.Gray) : undefined  
+            // },
+          ];
+
+          // Сохраняем статистику
+          currentStatistics.value = statistics;
         }
       } catch (error) {
         console.error('Ошибка применения изменений:', error);
       } finally {
         processing.value = false;
+        channelsLoading.value = false;
       }
     };
 
@@ -287,7 +254,8 @@ export default defineComponent({
       Object.assign(editorParams, DEFAULT_PARAMS);
       processedImage.value = null;
       processedImageBlob.value = null;
-      loadChannelImages();
+      channelImages.value = [];
+      currentStatistics.value = null;
     };
 
     const downloadImage = () => {
@@ -315,6 +283,7 @@ export default defineComponent({
       processing,
       channelsLoading,
       editorParams,
+      currentStatistics,
       triggerFileInput,
       handleFileUpload,
       updateParams,
