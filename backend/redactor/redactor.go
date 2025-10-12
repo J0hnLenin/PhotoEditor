@@ -36,6 +36,23 @@ func Redact(inputImage imatix.Image, parameters imatix.Parameters) (imatix.Image
 	if parameters.Magic != 0.0 {
 		processors.Magic(inputImage, parameters.Magic)
 	}
+	
+	if parameters.LogarithmicClip {
+		inputImage = processors.LogarithmicClipAuto(inputImage)
+	}
+	if parameters.PowerClip != 0.0 {
+		inputImage = processors.PowerClipAuto(inputImage, parameters.PowerClip)
+	}
+	if parameters.BinaryClip != 0 {
+		inputImage = processors.Binaryclip(inputImage, uint8(parameters.BinaryClip))	
+	}
+	if parameters.ConstantValue != 0 {
+		inputImage = processors.IntensitySliceConstant(inputImage, 
+			uint8(parameters.ConstantLow), 
+			uint8(parameters.ConstantHigh), 
+			uint8(parameters.ConstantValue),
+		)
+	}
 
 	temp := processors.CopyImage(inputImage)
 	bluredImage := temp
@@ -59,11 +76,6 @@ func Redact(inputImage imatix.Image, parameters imatix.Parameters) (imatix.Image
 		inputImage = bluredImage
 	}
 	changes := processors.Changes(originalCopy, inputImage)
-	// ApplyCore - новая функция чтобы избежать дублирования.
-	// Можно код отрефакторить, прическать.
-	// Новые обработчики добавлять в этом формате.
-	//if parameters.LogarithmicBrightness != 1.0 {
-	//	processors.ApplyCore(inputImage, "LogarithmicBrightness", parameters.LogarithmicBrightness)
-	//}
+	
 	return changes, inputImage
 }

@@ -441,28 +441,7 @@ func createRectangularKernel(size int) []float64 {
 	return kernel
 }
 
-func Colorclip(img imatix.Image, lambda, threshold, constant float64, low, high uint8, useConstant bool) imatix.Image {
-	result := CopyImage(img)
-
-	// 1.1 Логарифмическое преобразование (автоподбор коэффициента c)
-	result = logarithmicclipAuto(result)
-
-	// 1.2 Степенное преобразование с заданной гаммой (автоподбор коэффициента c)
-	result = powerclipAuto(result, lambda)
-
-	// 1.3 Бинарное преобразование с заданным порогом
-	result = binaryclip(result, uint8(threshold))
-
-	// 1.4 Вырезание диапазона яркостей
-	if useConstant {
-		// 1.4.1 Приведение к константному значению
-		result = intensitySliceConstant(result, low, high, uint8(constant))
-	}
-
-	return result
-}
-
-func logarithmicclipAuto(img imatix.Image) imatix.Image {
+func LogarithmicClipAuto(img imatix.Image) imatix.Image {
 	result := CopyImage(img)
 	maxBrightness := findMaxBrightness(result)
 
@@ -480,7 +459,7 @@ func logarithmicclipAuto(img imatix.Image) imatix.Image {
 	return result
 }
 
-func powerclipAuto(img imatix.Image, gamma float64) imatix.Image {
+func PowerClipAuto(img imatix.Image, gamma float64) imatix.Image {
 	result := CopyImage(img)
 	maxBrightness := findMaxBrightness(result)
 
@@ -498,7 +477,7 @@ func powerclipAuto(img imatix.Image, gamma float64) imatix.Image {
 	return result
 }
 
-func binaryclip(img imatix.Image, threshold uint8) imatix.Image {
+func Binaryclip(img imatix.Image, threshold uint8) imatix.Image {
 	result := CopyImage(img)
 
 	for y := 0; y < result.Height; y++ {
@@ -516,7 +495,7 @@ func binaryclip(img imatix.Image, threshold uint8) imatix.Image {
 	return result
 }
 
-func intensitySliceConstant(img imatix.Image, lowThreshold, highThreshold, constantValue uint8) imatix.Image {
+func IntensitySliceConstant(img imatix.Image, lowThreshold, highThreshold, constantValue uint8) imatix.Image {
 	result := CopyImage(img)
 
 	for y := 0; y < result.Height; y++ {

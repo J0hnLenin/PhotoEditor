@@ -89,6 +89,14 @@ func parseQuery(queryParameters url.Values) imatix.Parameters {
 	sigma, _ := strconv.ParseFloat(queryParameters.Get("Sigma"), 64)
 	interval, _ := strconv.Atoi(queryParameters.Get("Interval"))
 	unsharpMasking, _ := strconv.ParseFloat(queryParameters.Get("UnsharpMasking"), 64)
+
+	logarithmicClip, _ := strconv.ParseBool(queryParameters.Get("LogarithmicClip"))
+	powerClip, _ := strconv.ParseFloat(queryParameters.Get("PowerClip"), 64)
+	binaryClip, _ := strconv.Atoi(queryParameters.Get("BinaryClip"))
+	constantLow, _ := strconv.Atoi(queryParameters.Get("ConstantLow"))
+	constantHigh, _ := strconv.Atoi(queryParameters.Get("ConstantHigh"))
+	constantValue, _ := strconv.Atoi(queryParameters.Get("ConstantValue"))
+
 	return imatix.Parameters{
 		RedBrightness:         float64(200-redBrightness) / 100,
 		GreenBrightness:       float64(200-greenBrightness) / 100,
@@ -105,6 +113,12 @@ func parseQuery(queryParameters url.Values) imatix.Parameters {
 		Sigma:                 sigma,
 		Interval:              interval,
 		UnsharpMasking:        unsharpMasking,
+		LogarithmicClip: 	   logarithmicClip,
+		PowerClip: 			   powerClip,
+		BinaryClip:			   binaryClip,
+		ConstantLow:		   constantLow,
+		ConstantHigh:		   constantHigh,
+		ConstantValue:		   constantValue,
 	}
 
 }

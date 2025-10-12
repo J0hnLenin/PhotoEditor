@@ -43,4 +43,10 @@ type Parameters struct {
 	Sigma                 float64
 	Interval              int
 	UnsharpMasking        float64
+	LogarithmicClip 	  bool
+	PowerClip 			  float64
+	BinaryClip			  int
+	ConstantLow			  int
+	ConstantHigh		  int
+	ConstantValue		  int
 }

@@ -114,6 +114,73 @@
         <option value="GBR">BRG</option>
       </select>
     </div>
+
+    
+    <div class="control-group checkbox">
+      <label>
+        <input 
+          type="checkbox" 
+          v-model="localParams.LogarithmicClip"
+          @change="updateParam('LogarithmicClip', $event)"
+        />
+        Логарифическое преобразование
+      </label>
+    </div>
+
+    <div class="control-group">
+      <label>Степенное преобразование: {{ params.PowerClip }}</label>
+      <input 
+        type="range" 
+        min="0" 
+        max="10" 
+        v-model.number="localParams.PowerClip"
+        @input="updateParam('PowerClip', $event)"
+      />
+    </div>
+    <div class="control-group">
+      <label>Бинарное преобразование: {{ params.BinaryClip }}</label>
+      <input 
+        type="range" 
+        min="0" 
+        max="255" 
+        v-model.number="localParams.BinaryClip"
+        @input="updateParam('BinaryClip', $event)"
+      />
+    </div>
+    <div class="control-group">
+      <label>Приведение к константному значению</label>
+      <div class="control-group">
+        <label>Верхняя граница диапазона: {{ params.ConstantHigh }}</label>
+        <input 
+          type="range" 
+          min="0" 
+          max="255" 
+          v-model.number="localParams.ConstantHigh"
+          @input="updateParam('ConstantHigh', $event)"
+        />
+      </div>
+      <div class="control-group">
+        <label>Нижняя граница диапазона: {{ params.ConstantLow }}</label>
+        <input 
+          type="range" 
+          min="0" 
+          max="255" 
+          v-model.number="localParams.ConstantLow"
+          @input="updateParam('ConstantLow', $event)"
+        />
+      </div>
+      <div class="control-group">
+        <label>Значение конвертации {{ params.ConstantValue }}</label>
+        <input 
+          type="range" 
+          min="0" 
+          max="255" 
+          v-model.number="localParams.ConstantValue"
+          @input="updateParam('ConstantValue', $event)"
+        />
+      </div>
+    </div>
+
     <div class="control-group">
       <label>Фильтр:</label>
       <select 
@@ -198,6 +265,12 @@ const DEFAULT_PARAMS: ImageEditorParams = {
   Sigma: 0,
   Interval: 1,
   UnsharpMasking: 0,
+  LogarithmicClip: false,
+	PowerClip:        0,
+	BinaryClip:			  0,
+	ConstantLow:			  0,
+	ConstantHigh:		  0,
+	ConstantValue:		  0,
 };
 
 export default defineComponent({

@@ -9,10 +9,17 @@ export interface ImageEditorParams {
   HorizontalMirror: boolean;
   Magic: number;
   Filter: string;
-  FilterSize: 3;
+  FilterSize: number;
   Sigma: number;
   Interval: number;
   UnsharpMasking: number;
+  LogarithmicClip: boolean;
+	PowerClip: number;
+	BinaryClip: number;
+	ConstantLow: number;
+	ConstantHigh: number;
+	ConstantValue: number;
+
 }
 
 export interface ChannelImage {
