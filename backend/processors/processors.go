@@ -443,40 +443,52 @@ func createRectangularKernel(size int) []float64 {
 
 func LogarithmicClipAuto(img imatix.Image) imatix.Image {
 	result := CopyImage(img)
-	maxBrightness := findMaxBrightness(result)
 
-	c := 255.0 / math.Log(1.0+maxBrightness)
+	minBrightness, maxBrightness := findMinMaxBrightness(result)
+	actualRange := maxBrightness - minBrightness
+
+	c := actualRange / math.Log(2.0)
 
 	for y := 0; y < result.Height; y++ {
 		for x := 0; x < result.Width; x++ {
 			for channel := 0; channel < 3; channel++ {
-				value := float64(result.Matrix[y][x][channel])
-				newValue := c * math.Log(1.0+value)
+				current := float64(result.Matrix[y][x][channel])
+
+				normalized := (current - minBrightness) / actualRange
+
+				logValue := c * math.Log(1.0+normalized)
+
+				newValue := minBrightness + logValue
+
 				result.Matrix[y][x][channel] = clip(newValue)
 			}
 		}
 	}
 	return result
 }
-
 func PowerClipAuto(img imatix.Image, gamma float64) imatix.Image {
 	result := CopyImage(img)
-	maxBrightness := findMaxBrightness(result)
 
-	c := 255.0 / math.Pow(maxBrightness/255.0, gamma)
+	minBrightness, maxBrightness := findMinMaxBrightness(result)
+	actualRange := maxBrightness - minBrightness
 
 	for y := 0; y < result.Height; y++ {
 		for x := 0; x < result.Width; x++ {
 			for channel := 0; channel < 3; channel++ {
-				normalized := float64(result.Matrix[y][x][channel]) / 255.0
-				cliped := c * math.Pow(normalized, gamma)
-				result.Matrix[y][x][channel] = clip(cliped)
+				current := float64(result.Matrix[y][x][channel])
+
+				normalized := (current - minBrightness) / actualRange
+
+				powerValue := math.Pow(normalized, gamma)
+
+				newValue := minBrightness + powerValue*actualRange
+
+				result.Matrix[y][x][channel] = clip(newValue)
 			}
 		}
 	}
 	return result
 }
-
 func Binaryclip(img imatix.Image, threshold uint8) imatix.Image {
 	result := CopyImage(img)
 
@@ -519,17 +531,21 @@ func IntensitySliceConstant(img imatix.Image, lowThreshold, highThreshold, const
 	return result
 }
 
-func findMaxBrightness(img imatix.Image) float64 {
+func findMinMaxBrightness(img imatix.Image) (float64, float64) {
+	minVal := 255.0
 	maxVal := 0.0
 	for y := 0; y < img.Height; y++ {
 		for x := 0; x < img.Width; x++ {
 			for channel := 0; channel < 3; channel++ {
 				val := float64(img.Matrix[y][x][channel])
+				if val < minVal {
+					minVal = val
+				}
 				if val > maxVal {
 					maxVal = val
 				}
 			}
 		}
 	}
-	return maxVal
+	return minVal, maxVal
 }

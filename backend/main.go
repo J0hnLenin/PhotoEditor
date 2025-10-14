@@ -113,12 +113,12 @@ func parseQuery(queryParameters url.Values) imatix.Parameters {
 		Sigma:                 sigma,
 		Interval:              interval,
 		UnsharpMasking:        unsharpMasking,
-		LogarithmicClip: 	   logarithmicClip,
-		PowerClip: 			   powerClip,
-		BinaryClip:			   binaryClip,
-		ConstantLow:		   constantLow,
-		ConstantHigh:		   constantHigh,
-		ConstantValue:		   constantValue,
+		LogarithmicClip:       logarithmicClip,
+		PowerClip:             powerClip,
+		BinaryClip:            binaryClip,
+		ConstantLow:           constantLow,
+		ConstantHigh:          constantHigh,
+		ConstantValue:         constantValue,
 	}
 
 }
@@ -274,7 +274,7 @@ func main() {
 
 	allowedOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
 	if allowedOrigins == "" {
-		allowedOrigins = "http://localhost,http://127.0.0.1,http://localhost:80,http://127.0.0.1:80"
+		allowedOrigins = "http://localhost:5173,http://127.0.0.1,http://localhost:80,http://127.0.0.1:80"
 	}
 	fmt.Println(allowedOrigins)
 	origins := strings.Split(allowedOrigins, ",")
